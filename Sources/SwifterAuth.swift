@@ -28,6 +28,7 @@ import Foundation
 #if os(iOS)
     import UIKit
     import SafariServices
+    import WebKit
 #elseif os(macOS)
     import AppKit
 #endif
@@ -73,7 +74,7 @@ public extension Swifter {
      */
     
     #if os(iOS)
-    public func authorize(with callbackURL: URL, presentFrom presentingViewController: UIViewController? , success: TokenSuccessHandler?, failure: FailureHandler? = nil) {
+    public func authorize(with callbackURL: URL, presentFrom presentingViewController: UIViewController?, inEmbedded webView :WKWebView? = nil, success: TokenSuccessHandler?, failure: FailureHandler? = nil) {
         self.postOAuthRequestToken(with: callbackURL, success: { token, response in
             var requestToken = token!
             NotificationCenter.default.addObserver(forName: .SwifterCallbackNotification, object: nil, queue: .main) { notification in
@@ -93,12 +94,16 @@ public extension Swifter {
             let authorizeURL = URL(string: "oauth/authorize", relativeTo: TwitterURL.oauth.url)
             let queryURL = URL(string: authorizeURL!.absoluteString + "?oauth_token=\(token!.key)")!
             
-            if #available(iOS 9.0, *) , let delegate = presentingViewController as? SFSafariViewControllerDelegate {
-                let safariView = SFSafariViewController(url: queryURL)
-                safariView.delegate = delegate
-                presentingViewController?.present(safariView, animated: true, completion: nil)
-            } else {
-                UIApplication.shared.openURL(queryURL)
+            if webView != nil {
+                webView!.load(URLRequest(url: queryURL))
+            }else {
+                if #available(iOS 9.0, *) , let delegate = presentingViewController as? SFSafariViewControllerDelegate {
+                    let safariView = SFSafariViewController(url: queryURL)
+                    safariView.delegate = delegate
+                    presentingViewController?.present(safariView, animated: true, completion: nil)
+                } else {
+                    UIApplication.shared.openURL(queryURL)
+                }
             }
         }, failure: failure)
     }
